@@ -2122,6 +2122,7 @@ object SoraExtractor : SoraStream() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit,
     ) {
+        val referer = "https://blackvid.space/"
         val key = "c3124ecca65f4e72ef5cb39033cdfed69697e94e"
         val url = if (season == null) {
             "$blackvidAPI/v3/movie/sources/$tmdbId?key=$key"
@@ -2139,8 +2140,8 @@ object SoraExtractor : SoraStream() {
                         "Blackvid",
                         "Blackvid${source.label}",
                         s.url ?: return@s,
-                        "https://blackvid.space/",
-                        s.quality?.toIntOrNull() ?: Qualities.Unknown.value,
+                        referer,
+                        s.quality?.toIntOrNull() ?: Qualities.P1080.value,
                         INFER_TYPE
                     )
                 )
@@ -2154,6 +2155,56 @@ object SoraExtractor : SoraStream() {
                     sub.url ?: return@map,
                 )
             )
+        }
+
+    }
+
+    suspend fun invokeShowflix(
+        title: String? = null,
+        year: Int? = null,
+        season: Int? = null,
+        episode: Int? = null,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit,
+    ) {
+        val where = if(season==null) "movieName" else "seriesName"
+        val classes = if(season==null) "movies" else "series"
+        val body = """
+        {
+            "where": {
+                "$where": {
+                    "${'$'}regex": "$title",
+                    "${'$'}options": "i"
+                }
+            },
+            "order": "-updatedAt",
+            "_method": "GET",
+            "_ApplicationId": "SHOWFLIXAPPID",
+            "_JavaScriptKey": "SHOWFLIXMASTERKEY",
+            "_ClientVersion": "js3.4.1",
+            "_InstallationId": "6d19fd87-a0e8-47b2-a3c0-48c16add928b"
+        }
+    """.trimIndent().toRequestBody(RequestBodyTypes.JSON.toMediaTypeOrNull())
+
+        val data = app.post("https://parse.showflix.tk/parse/classes/$classes", requestBody = body).text
+        val iframes = if(season==null) {
+            val result = tryParseJson<ShowflixSearchMovies>(data)?.resultsMovies?.find { it.movieName.equals("$title ($year)", true) }
+            listOf(
+                "https://streamwish.to/e/${result?.streamwish}",
+                "https://filelions.to/v/${result?.filelions}.html",
+                "https://streamruby.com/e/${result?.streamruby}.html",
+            )
+        } else {
+            val result = tryParseJson<ShowflixSearchSeries>(data)?.resultsSeries?.find { it.seriesName.equals(title, true) }
+            listOf(
+                result?.streamwish?.get("Season $season")?.get(episode!!),
+                result?.filelions?.get("Season $season")?.get(episode!!),
+                result?.streamruby?.get("Season $season")?.get(episode!!),
+            )
+        }
+
+        iframes.apmap { iframe ->
+            loadExtractor(iframe ?: return@apmap, "$showflixAPI/", subtitleCallback, callback)
         }
 
     }
