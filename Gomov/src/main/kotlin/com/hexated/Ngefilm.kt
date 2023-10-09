@@ -1,15 +1,9 @@
 package com.hexated
 
-import com.lagradost.cloudstream3.SubtitleFile
-import com.lagradost.cloudstream3.apmap
-import com.lagradost.cloudstream3.app
-import com.lagradost.cloudstream3.fixUrl
 import com.lagradost.cloudstream3.mainPageOf
-import com.lagradost.cloudstream3.utils.ExtractorLink
-import com.lagradost.cloudstream3.utils.loadExtractor
 
 class Ngefilm : Gomov() {
-    override var mainUrl = "https://ngefilmnih.store"
+    override var mainUrl = "https://nge-film21.cyou"
     override var name = "Ngefilm"
 
     override val mainPage = mainPageOf(
