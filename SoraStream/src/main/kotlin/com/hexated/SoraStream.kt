@@ -33,6 +33,7 @@ import com.hexated.SoraExtractor.invokeRidomovies
 import com.hexated.SoraExtractor.invokeSmashyStream
 import com.hexated.SoraExtractor.invokeDumpStream
 import com.hexated.SoraExtractor.invokeEmovies
+import com.hexated.SoraExtractor.invokeGomovies
 import com.hexated.SoraExtractor.invokeHdmovies4u
 import com.hexated.SoraExtractor.invokeMoment
 import com.hexated.SoraExtractor.invokeMultimovies
@@ -116,9 +117,9 @@ open class SoraStream : TmdbProvider() {
         const val vegaMoviesAPI = "https://vegamovies.boo"
         const val hdmovies4uAPI = "https://hdmovies4u.name"
         const val watchflxAPI = "https://watchflx.tv"
-        const val dotmoviesAPI = "https://dotmovies.yachts"
+        const val dotmoviesAPI = "https://dotmovies.im"
         const val blackvidAPI = "https://prod.api.blackvid.space"
-        const val showflixAPI = "https://showflix.online"
+        const val showflixAPI = "https://showflix.space"
         const val dahmerMoviesAPI = "https://odd-bird-1319.zwuhygoaqe.workers.dev"
 
         fun getType(t: String?): TvType {
@@ -678,6 +679,9 @@ open class SoraStream : TmdbProvider() {
                     subtitleCallback,
                     callback
                 )
+            },
+            {
+                if (!res.isAnime) invokeGomovies(res.title, res.year, res.season, res.episode, callback)
             },
             {
                 if (!res.isAnime) invokeShowflix(
