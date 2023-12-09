@@ -1619,26 +1619,29 @@ object SoraExtractor : SoraStream() {
     }
 
     suspend fun invokeSmashyStream(
-        tmdbId: Int? = null,
+        imdbId: String? = null,
         season: Int? = null,
         episode: Int? = null,
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit,
     ) {
         val url = if (season == null) {
-            "$smashyStreamAPI/playere.php?tmdb=$tmdbId"
+            "$smashyStreamAPI/playere.php?imdb=$imdbId"
         } else {
-            "$smashyStreamAPI/playere.php?tmdb=$tmdbId&season=$season&episode=$episode"
+            "$smashyStreamAPI/playere.php?imdb=$imdbId&season=$season&episode=$episode"
         }
 
         app.get(
-            url, referer = "https://smashystream.xyz/"
+            url, referer = "https://smashystream.com/"
         ).document.select("div#_default-servers a.server").map {
             it.attr("data-url") to it.text()
         }.apmap {
-            when {
-                it.second.contains(Regex("(Player F|Player FM)\$")) -> {
+            when (it.second) {
+                "Player F" -> {
                     invokeSmashyFfix(it.second, it.first, url, callback)
+                }
+                "Player D (Hindi)" -> {
+                    invokeSmashyD(it.first, url, callback)
                 }
                 else -> return@apmap
             }
@@ -2066,7 +2069,7 @@ object SoraExtractor : SoraStream() {
             "$blackvidAPI/v3/tv/sources/$tmdbId/$season/$episode?key=$key"
         }
 
-        val data = app.get(url, timeout = 120L, referer = ref).okhttpResponse.peekBody(1024 * 128).bytes().decrypt("2378f8e4e844f2dc839ab48f66e00acc2305a401")
+        val data = app.get(url, timeout = 120L, referer = ref).okhttpResponse.peekBody(1024 * 512).bytes().decrypt("2378f8e4e844f2dc839ab48f66e00acc2305a401")
         val json = tryParseJson<BlackvidResponses>(data)
 
         json?.sources?.map { source ->

@@ -45,7 +45,7 @@ import kotlin.collections.ArrayList
 import kotlin.math.min
 
 var watchflxCookies: Map<String, String>? = null
-var filmxyCookies: Map<String,String>? = null
+var filmxyCookies: Map<String, String>? = null
 var sfServer: String? = null
 
 val encodedIndex = arrayOf(
@@ -131,6 +131,7 @@ fun String.filterMedia(title: String?, yearNum: Int?, seasonNum: Int?): Boolean 
             seasonNum > 1 -> this.contains(Regex("(?i)(Season\\s0?1-0?$seasonNum)|(S0?1-S?0?$seasonNum)")) && this.contains(
                 Regex("(?i)($fixTitle)|($title)")
             )
+
             else -> this.contains(Regex("(?i)(Season\\s0?1)|(S0?1)")) && this.contains(
                 Regex("(?i)($fixTitle)|($title)")
             ) && this.contains("$yearNum")
@@ -452,16 +453,28 @@ suspend fun invokeSmashyFfix(
     val json = app.get(url, referer = ref, headers = mapOf("X-Requested-With" to "XMLHttpRequest"))
         .parsedSafe<SmashySources>()
     json?.sourceUrls?.map {
-        callback.invoke(
-            ExtractorLink(
-                "Smashy [$name]",
-                "Smashy [$name]",
-                it,
-                if(name == "Player FM") "https://vidplay.site/" else "",
-                Qualities.P1080.value,
-                INFER_TYPE
-            )
-        )
+        M3u8Helper.generateM3u8(
+            "Smashy [$name]",
+            it,
+            ""
+        ).forEach(callback)
+    }
+
+}
+
+suspend fun invokeSmashyD(
+    url: String,
+    ref: String,
+    callback: (ExtractorLink) -> Unit,
+) {
+    val json = app.get(url, referer = ref, headers = mapOf("X-Requested-With" to "XMLHttpRequest"))
+        .parsedSafe<SmashyDSources>()
+    json?.sourceUrls?.apmap {
+        M3u8Helper.generateM3u8(
+            "Smashy [Player D ${it.title}]",
+            it.file ?: return@apmap,
+            ""
+        ).forEach(callback)
     }
 
 }
@@ -489,6 +502,7 @@ suspend fun getDumpIdAndType(title: String?, year: Int?, season: Int?): Pair<Str
                         true
                     ) && it.releaseTime == "$year" && it.domainType == 0
                 }
+
                 1 -> {
                     it.name?.contains(
                         "$title",
@@ -498,6 +512,7 @@ suspend fun getDumpIdAndType(title: String?, year: Int?, season: Int?): Pair<Str
                         true
                     )) && it.domainType == 1
                 }
+
                 else -> {
                     it.name?.contains(Regex("(?i)$title\\s?($season|${season.toRomanNumeral()}|Season\\s$season)")) == true && it.releaseTime == "$year" && it.domainType == 1
                 }
@@ -533,25 +548,26 @@ suspend fun invokeDrivetot(
 ) {
     val res = app.get(url)
     val data = res.document.select("form input").associate { it.attr("name") to it.attr("value") }
-    app.post(res.url, data = data, cookies = res.cookies).document.select("div.card-body a").apmap { ele ->
-        val href = base64Decode(ele.attr("href").substringAfterLast("/")).let {
-            if(it.contains("hubcloud.lol")) it.replace("hubcloud.lol", "hubcloud.in") else it
-        }
-        loadExtractor(href, "$hdmovies4uAPI/", subtitleCallback) { link ->
-            callback.invoke(
-                ExtractorLink(
-                    link.source,
-                    "${link.name} $tags [$size]",
-                    link.url,
-                    link.referer,
-                    link.quality,
-                    link.type,
-                    link.headers,
-                    link.extractorData
+    app.post(res.url, data = data, cookies = res.cookies).document.select("div.card-body a")
+        .apmap { ele ->
+            val href = base64Decode(ele.attr("href").substringAfterLast("/")).let {
+                if (it.contains("hubcloud.lol")) it.replace("hubcloud.lol", "hubcloud.in") else it
+            }
+            loadExtractor(href, "$hdmovies4uAPI/", subtitleCallback) { link ->
+                callback.invoke(
+                    ExtractorLink(
+                        link.source,
+                        "${link.name} $tags [$size]",
+                        link.url,
+                        link.referer,
+                        link.quality,
+                        link.type,
+                        link.headers,
+                        link.extractorData
+                    )
                 )
-            )
+            }
         }
-    }
 }
 
 suspend fun bypassBqrecipes(url: String): String? {
@@ -770,10 +786,13 @@ suspend fun fetchSfServer(): String {
     return app.get("https://raw.githubusercontent.com/hexated/cloudstream-resources/main/sfmovies_server").text
 }
 
-suspend fun getFilmxyCookies(url: String) = filmxyCookies ?: fetchFilmxyCookies(url).also { filmxyCookies = it }
+suspend fun getFilmxyCookies(url: String) =
+    filmxyCookies ?: fetchFilmxyCookies(url).also { filmxyCookies = it }
+
 suspend fun fetchFilmxyCookies(url: String): Map<String, String> {
 
-    val defaultCookies = mutableMapOf("G_ENABLED_IDPS" to "google", "true_checker" to "1", "XID" to "1")
+    val defaultCookies =
+        mutableMapOf("G_ENABLED_IDPS" to "google", "true_checker" to "1", "XID" to "1")
     session.get(
         url,
         headers = mapOf(
@@ -786,7 +805,10 @@ suspend fun fetchFilmxyCookies(url: String): Map<String, String> {
     defaultCookies["PHPSESSID"] = phpsessid
 
     val userNonce =
-        app.get("$filmxyAPI/login/?redirect_to=$filmxyAPI/", cookies = defaultCookies).document.select("script")
+        app.get(
+            "$filmxyAPI/login/?redirect_to=$filmxyAPI/",
+            cookies = defaultCookies
+        ).document.select("script")
             .find { it.data().contains("var userNonce") }?.data()?.let {
                 Regex("var\\suserNonce.*?\"(\\S+?)\";").find(it)?.groupValues?.get(1)
             }
@@ -810,7 +832,8 @@ suspend fun fetchFilmxyCookies(url: String): Map<String, String> {
     return cookieJar.plus(defaultCookies)
 }
 
-suspend fun getWatchflxCookies() = watchflxCookies ?: fetchWatchflxCookies().also { watchflxCookies = it }
+suspend fun getWatchflxCookies() =
+    watchflxCookies ?: fetchWatchflxCookies().also { watchflxCookies = it }
 
 suspend fun fetchWatchflxCookies(): Map<String, String> {
     session.get(watchflxAPI)
@@ -822,7 +845,8 @@ suspend fun fetchWatchflxCookies(): Map<String, String> {
             "continue_as_temp" to "true"
         ), cookies = cookies, headers = mapOf("X-Requested-With" to "XMLHttpRequest")
     )
-    return session.baseClient.cookieJar.loadForRequest(loginUrl.toHttpUrl()).associate { it.name to it.value }
+    return session.baseClient.cookieJar.loadForRequest(loginUrl.toHttpUrl())
+        .associate { it.name to it.value }
 }
 
 fun Document.findTvMoviesIframe(): String? {
@@ -1157,7 +1181,11 @@ fun String.decodePrimewireXor(key: String): String {
 fun vidsrctoDecrypt(text: String): String {
     val parse = Base64.decode(text.toByteArray(), Base64.URL_SAFE)
     val cipher = Cipher.getInstance("RC4")
-    cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec("8z5Ag5wgagfsOuhz".toByteArray(), "RC4"), cipher.parameters)
+    cipher.init(
+        Cipher.DECRYPT_MODE,
+        SecretKeySpec("8z5Ag5wgagfsOuhz".toByteArray(), "RC4"),
+        cipher.parameters
+    )
     return decode(cipher.doFinal(parse).toString(Charsets.UTF_8))
 }
 
@@ -1297,7 +1325,7 @@ fun isUpcoming(dateString: String?): Boolean {
     }
 }
 
-fun getDate() : TmdbDate {
+fun getDate(): TmdbDate {
     val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     val calender = Calendar.getInstance()
     val today = formatter.format(calender.time)
