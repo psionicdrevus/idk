@@ -1930,7 +1930,7 @@ object SoraExtractor : SoraStream() {
 
     }
 
-    suspend fun invokeGomovies(
+    suspend fun invokeOmovies(
         title: String? = null,
         year: Int? = null,
         season: Int? = null,
@@ -1943,10 +1943,10 @@ object SoraExtractor : SoraStream() {
             season,
             episode,
             callback,
-            "https://gomovies-online.cam",
-            "Gomovies",
-            "_smQamBQsETb",
-            "_sBWcqbTBMaT"
+            BuildConfig.OMOVIES_API,
+            "Omovies",
+            base64Decode("X3NtUWFtQlFzRVRi"),
+            base64Decode("X3NCV2NxYlRCTWFU")
         )
     }
 
@@ -1971,14 +1971,11 @@ object SoraExtractor : SoraStream() {
         } else {
             "$title Season $season"
         }
-        val idCookies =
-            mapOf(
-                "advanced-frontendgomovies7" to "bjd4n0nnv4hlt4fj5cdjgbrne2",
-                "_identitygomovies7" to "52fdc70b008c0b1d881dac0f01cca819edd512de01cc8bbc1224ed4aafb78b52a:2:{i:0;s:18:\"_identitygomovies7\";i:1;s:52:\"[2050366,\"HnVRRAObTASOJEr45YyCM8wiHol0V1ko\",2592000]\";}"
+        val savedCookies = mapOf(
+                "_identitygomovies7" to "52fdc70b008c0b1d881dac0f01cca819edd512de01cc8bbc1224ed4aafb78b52a%3A2%3A%7Bi%3A0%3Bs%3A18%3A%22_identitygomovies7%22%3Bi%3A1%3Bs%3A52%3A%22%5B2050366%2C%22HnVRRAObTASOJEr45YyCM8wiHol0V1ko%22%2C2592000%5D%22%3B%7D",
             )
         val req = app.get("$api/search/$query")
         val doc = req.document
-        var cookies = req.cookies + idCookies
         val media = doc.select("div.$mediaSelector").map {
             Triple(
                 it.attr("data-filmName"), it.attr("data-year"), it.select("a").attr("href")
@@ -2006,9 +2003,8 @@ object SoraExtractor : SoraStream() {
                 fixUrl(
                     media.third,
                     api
-                ), cookies = cookies
+                )
             )
-            cookies = cookies + res.cookies
             res.document.selectFirst("div#$episodeSelector a:contains(Episode ${slug.second})")
                 ?.attr("href")
         } ?: return
@@ -2019,11 +2015,11 @@ object SoraExtractor : SoraStream() {
             media.third.substringAfterLast("/") to iframe.substringAfterLast("/")
                 .substringBefore("-")
         }
-        val res = app.get(fixUrl(iframe ?: return, api), cookies = cookies, verify = false)
+        val res = app.get(fixUrl(iframe, api), verify = false)
         val serverUrl = res.document.selectFirst("script:containsData(pushState)")?.data()?.let {
             """,\s*'([^']+)""".toRegex().find(it)?.groupValues?.get(1)
         } ?: return
-        cookies = cookies + res.cookies
+        val cookies = savedCookies + res.cookies
         val url = res.document.select("meta[property=og:url]").attr("content")
         val headers = mapOf("X-Requested-With" to "XMLHttpRequest")
         val qualities = intArrayOf(2160, 1440, 1080, 720, 480, 360)
@@ -2067,7 +2063,6 @@ object SoraExtractor : SoraStream() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit,
     ) {
-        val ref = "https://blackvid.space/"
         val key = "b6055c533c19131a638c3d2299d525d5ec08a814"
         val url = if (season == null) {
             "$blackvidAPI/v3/movie/sources/$tmdbId?key=$key"
@@ -2075,11 +2070,7 @@ object SoraExtractor : SoraStream() {
             "$blackvidAPI/v3/tv/sources/$tmdbId/$season/$episode?key=$key"
         }
 
-        val data = app.get(
-            url,
-            timeout = 120L,
-            referer = ref
-        ).okhttpResponse.peekBody(1024 * 512).source().buffer.readByteArray()
+        val data = request(url,).peekBody(1024 * 512).source().buffer.readByteArray()
             .decrypt("2378f8e4e844f2dc839ab48f66e00acc2305a401")
         val json = tryParseJson<BlackvidResponses>(data)
 
@@ -2090,7 +2081,7 @@ object SoraExtractor : SoraStream() {
                         "Blackvid",
                         "Blackvid${source.label}",
                         s.url ?: return@s,
-                        ref,
+                        "https://blackvid.space/",
                         if (s.quality.equals("4k")) Qualities.P2160.value else s.quality?.toIntOrNull()
                             ?: Qualities.P1080.value,
                         INFER_TYPE

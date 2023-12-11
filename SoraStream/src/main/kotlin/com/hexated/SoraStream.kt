@@ -44,6 +44,7 @@ import com.hexated.SoraExtractor.invokeUhdmovies
 import com.hexated.SoraExtractor.invokeVegamovies
 import com.hexated.SoraExtractor.invokeVidsrcto
 import com.hexated.SoraExtractor.invokeCinemaTv
+import com.hexated.SoraExtractor.invokeOmovies
 import com.hexated.SoraExtractor.invokeWatchsomuch
 import com.hexated.SoraExtractor.invokeZshow
 import com.lagradost.cloudstream3.LoadResponse.Companion.addImdbId
@@ -442,13 +443,22 @@ open class SoraStream : TmdbProvider() {
                 )
             },
             {
-                invokeKisskh(
+                if (res.isAsian || res.isAnime) invokeKisskh(
                     res.title,
                     res.season,
                     res.episode,
                     res.isAnime,
                     res.lastSeason,
                     subtitleCallback,
+                    callback
+                )
+            },
+            {
+                if (!res.isAnime) invokeOmovies (
+                    res.title,
+                    res.year,
+                    res.season,
+                    res.episode,
                     callback
                 )
             },
