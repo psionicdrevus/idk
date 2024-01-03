@@ -1,13 +1,12 @@
-// use an integer for version numbers
-version = 25
+version = 1
 
 
 cloudstream {
-    language = "id"
+    language = "hi"
     // All of these properties are optional, you can safely remove them
 
-    // description = "Lorem Ipsum"
-    authors = listOf("Hexated")
+    description = "YOU HAVE SKIP ADS on the SITE each 24 hours, Hindi dubbed cartoons"
+    authors = listOf("anon")
 
     /**
      * Status int as the following:
@@ -18,10 +17,11 @@ cloudstream {
      * */
     status = 1 // will be 3 if unspecified
     tvTypes = listOf(
-        "AnimeMovie",
+        "TvSeries",
+        "Movie",
         "Anime",
-        "OVA",
+        "Cartoon"
     )
 
-    iconUrl = "https://www.google.com/s2/favicons?domain=oploverz.care&sz=%size%"
+    iconUrl = "https://animedekho.com/wp-content/uploads/2023/07/AnimeDekho-Logo-300x-1.pngg"
 }
