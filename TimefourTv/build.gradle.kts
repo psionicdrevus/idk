@@ -1,5 +1,5 @@
 // use an integer for version numbers
-version = 20
+version = 21
 
 
 cloudstream {
@@ -21,5 +21,5 @@ cloudstream {
         "Live",
     )
 
-    iconUrl = "https://www.google.com/s2/favicons?domain=time4tv.stream&sz=%size%"
+    iconUrl = "https://cdn.discordapp.com/attachments/1109266606292488297/1193079167600840734/Untitled.jpg"
 }
