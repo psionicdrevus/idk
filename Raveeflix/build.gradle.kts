@@ -1,5 +1,5 @@
 // use an integer for version numbers
-version = 6
+version = 1
 
 
 cloudstream {
@@ -7,7 +7,7 @@ cloudstream {
     // All of these properties are optional, you can safely remove them
 
     // description = "Lorem Ipsum"
-     authors = listOf("Hexated")
+    authors = listOf("Hexated")
 
     /**
      * Status int as the following:
@@ -19,7 +19,9 @@ cloudstream {
     status = 1 // will be 3 if unspecified
     tvTypes = listOf(
         "AsianDrama",
+        "TvSeries",
+        "Movie",
     )
 
-    iconUrl = "https://www.google.com/s2/favicons?domain=149.3.170.35&sz=%size%"
+    iconUrl = "https://raveeflix.my.id/favicon.ico"
 }
